@@ -1,575 +1,601 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, Activity, FileText, CheckCircle, Brain, Globe, Users, Coins, Microscope, BookOpen, Atom, Building2, Target, Search, ShieldCheck, Quote, Bot } from 'lucide-react';
-
-/**
- * 한국연구재단(NRF) 직무 진단 어플리케이션 "NRF Fit" (v3.1)
- * * [업데이트 내역]
- * - 타이틀 문구 수정 ('AI 기반 적합 부서 정밀 진단')
- * - 최신 조직도(RISE, 감사실 등) 및 정밀 분석 알고리즘 유지
- */
-
-// --- 데이터 베이스 ---
-const nrfStructure = {
-  planning: {
-    name: "기획조정본부",
-    icon: <Target className="w-12 h-12 text-teal-600" />,
-    desc: "재단의 경영 목표를 수립하고, 예산 및 조직 혁신 전략을 총괄 조정합니다.",
-    teams: [
-      { name: "경영전략팀", projects: ["기관 경영목표 및 기획", "이사회 운영", "대국회 업무"] },
-      { name: "예산팀", projects: ["정부출연금 예산 요구 및 편성", "중기 재무관리 계획 수립"] },
-      { name: "혁신전략팀", projects: ["경영혁신전략 수립", "ESG경영 추진", "조직 성과관리 및 평가"] },
-      { name: "윤리경영팀", projects: ["반부패·청렴 추진계획 수립", "인권경영 계획수립 및 실행"] },
-      { name: "홍보전략팀", projects: ["기관 경영활동 홍보", "대한민국 과학기술대전 개최"] }
-    ]
-  },
-  management: {
-    name: "경영지원본부",
-    icon: <Coins className="w-12 h-12 text-gray-500" />,
-    desc: "인사, 재무, 시설 등 기관의 안정적 운영을 위한 핵심 기반을 제공합니다.",
-    teams: [
-      { name: "인재경영팀", projects: ["인사관리 및 채용", "직원 교육 및 복지"] },
-      { name: "재무회계팀", projects: ["결산 및 세무 관리", "자금 집행"] },
-      { name: "기금관리팀", projects: ["연구산업기반조성사업", "과학기술진흥기금 운용"] },
-      { name: "구매자산팀", projects: ["공사·용역 계약", "물품 구매 및 자산 관리"] },
-      { name: "시설환경팀", projects: ["청사 시설물 유지 관리", "에너지 절약 추진"] },
-      { name: "서울청사지원TF", projects: ["서울청사 시설 및 안전 관리"] },
-      { name: "안전보건팀", projects: ["기관 안전보건경영체계 관리", "중대재해 예방"] }
-    ]
-  },
-  policy: {
-    name: "연구정책성과전략본부",
-    icon: <Activity className="w-12 h-12 text-red-500" />,
-    desc: "국가 R&D 정책을 기획하고 연구 성과를 분석·확산하며 올바른 연구 문화를 조성합니다.",
-    teams: [
-      { name: "연구정책기획팀", projects: ["연구지원정책선진화기반조성", "국내외 R&D 동향 조사분석"] },
-      { name: "연구사업총괄팀", projects: ["연구사업 총괄 조정", "과기특성화대학 기술사업화 선도모델"] },
-      { name: "성과확산혁신팀", projects: ["우수과학자포상사업", "금요일에 과학터치", "R&D 성과 확산"] },
-      { name: "연구데이터분석팀", projects: ["KCI(한국학술지인용색인) 시스템 운영", "연구사업 통계 분석"] },
-      { name: "학술연구기반지원팀", projects: ["학술지 평가 및 등재", "인문사회분야 학술단체지원사업"] },
-      { name: "윤리정책법무팀", projects: ["연구윤리활동지원사업", "연구부정행위 신고센터 운영"] },
-      { name: "연구정산총괄팀", projects: ["연구비 정산 총괄", "정산 제도 및 시스템 개선"] }
-    ]
-  },
-  basic: {
-    name: "기초연구본부",
-    icon: <Microscope className="w-12 h-12 text-blue-500" />,
-    desc: "전 학문 분야의 기초연구를 폭넓게 지원하여 국가 기초연구 역량을 강화합니다.",
-    teams: [
-      { name: "기초연구총괄팀", projects: ["기초연구사업 종합계획 수립", "기초연구 통계 관리"] },
-      { name: "개인연구지원팀", projects: ["글로벌 리더연구", "중견연구", "한우물파기 기초연구", "세종과학펠로우십", "생애첫연구"] },
-      { name: "집단연구지원팀", projects: ["글로벌 기초연구실", "글로벌 선도연구센터", "기초연구실험데이터글로벌허브구축"] },
-      { name: "이공학술지원팀", projects: ["학문후속세대지원", "대학연구기반구축", "학술연구혁신지원", "보호연구"] },
-      { name: "자연과학단", projects: ["자연과학 분야 연구동향 조사", "분야별 지원체계 고도화"] },
-      { name: "생명과학단", projects: ["생명과학 분야 연구동향 조사", "바이오 기초연구 기획"] },
-      { name: "의약학단", projects: ["의약학 분야 연구동향 조사", "기초의과학 선도연구센터 관리"] },
-      { name: "공학단", projects: ["공학 분야 연구동향 조사", "공학분야 선도연구센터 관리"] },
-      { name: "ICT융합연구단", projects: ["ICT/융합 분야 연구동향 조사", "융합연구 활성화 기획"] }
-    ]
-  },
-  humanities: {
-    name: "인문사회연구본부",
-    icon: <BookOpen className="w-12 h-12 text-green-500" />,
-    desc: "인문사회 분야의 학술 및 연구개발 지원을 총괄하며 인문학적 가치를 확산합니다.",
-    teams: [
-      { name: "인문사회연구총괄팀", projects: ["인문학진흥전담기관 운영", "인문학대중화사업", "기초학문자료센터(KRM) 운영"] },
-      { name: "인문사회연구자지원팀", projects: ["인문사회학술연구교수(A/B유형)", "신진/중견연구자지원사업", "명저번역지원사업"] },
-      { name: "인문사회연구소지원팀", projects: ["인문사회연구소지원사업", "인문한국플러스(HK+)지원사업", "사회과학연구지원사업(SSK)"] },
-      { name: "인문학단", projects: ["어학/문학/역사/철학 분야 연구동향 조사", "인문학 학술지원 기획"] },
-      { name: "사회과학단", projects: ["법/정치/경제/사회 분야 연구동향 조사", "사회과학 학술지원 기획"] },
-      { name: "문화융복합단", projects: ["예술/체육/복합학 분야 연구동향 조사", "문화융복합 학술지원 기획"] }
-    ]
-  },
-  strategy: {
-    name: "국가전략연구본부",
-    icon: <Brain className="w-12 h-12 text-purple-500" />,
-    desc: "국가 필수전략기술 및 미래 유망 기술 확보를 위한 대형 국책 연구를 주도합니다.",
-    teams: [
-      { name: "국가전략사업총괄팀", projects: ["국가전략연구본부 사업 총괄 조정", "신규사업 기획 총괄"] },
-      { name: "국가전략사업평가1팀", projects: ["바이오/의약/공공 분야 과제 평가 관리", "평가위원 DB 관리"] },
-      { name: "국가전략사업평가2팀", projects: ["나노/정보/양자/원자력 분야 과제 평가 관리", "평가 제도 개선"] },
-      { name: "한계도전전략센터", projects: ["한계도전 R&D 프로젝트 (High-Risk, High-Return)"] },
-      { name: "신약단", projects: ["국가신약개발사업", "감염병 차세대 백신 기초원천 핵심기술개발"] },
-      { name: "차세대바이오단", projects: ["바이오·의료기술개발사업", "합성생물학 핵심기술개발"] },
-      { name: "뇌·첨단의공학단", projects: ["뇌과학선도융합기술개발", "범부처 전주기 의료기기 연구개발"] },
-      { name: "반도체·디스플레이단", projects: ["차세대 지능형 반도체기술개발", "미래 디스플레이 전략연구실"] },
-      { name: "나노·소재단", projects: ["나노·소재기술개발사업", "미래소재디스커버리사업"] },
-      { name: "양자기술단", projects: ["양자컴퓨팅 연구인프라 구축", "양자정보과학 연구개발생태계 조성"] },
-      { name: "원자력단", projects: ["혁신형 소형모듈원자로(i-SMR) 기술개발", "가동원전 안전성 향상 핵심기술"] },
-      { name: "거대인프라·방사선단", projects: ["다목적 방사광가속기 구축사업", "중이온가속기 선행 R&D"] },
-      { name: "공공기술단", projects: ["재난안전플랫폼기술개발", "미래국방혁신기술개발"] },
-      { name: "에너지·환경단", projects: ["미래수소원천기술개발", "기후기술국제협력촉진"] },
-      { name: "정보·융합기술단", projects: ["미래개척융합과학기술개발", "슈퍼컴퓨터 개발 선도"] }
-    ]
-  },
-  talent: {
-    name: "학술진흥본부",
-    icon: <Users className="w-12 h-12 text-yellow-500" />,
-    desc: "대학의 교육·연구 역량을 강화하고 미래 사회를 이끌 인재를 양성합니다.",
-    teams: [
-      { name: "학술총괄팀", projects: ["학술진흥본부 사업 총괄", "대학연구기관 전문연구요원 관리"] },
-      { name: "BK21사업팀", projects: ["4단계 두뇌한국(BK)21 사업 (미래인재/혁신인재/대학원혁신)"] },
-      { name: "인재양성사업팀", projects: ["이공계 연구생활장려금", "과학영재양성사업", "여성과학기술인 지원"] },
-      { name: "대학지원팀", projects: ["대학혁신지원사업", "국립대학육성사업"] },
-      { name: "전문대학지원팀", projects: ["전문대학 혁신지원사업", "마이스터대 지원사업"] },
-      { name: "산학협력기반팀", projects: ["창업교육 혁신선도대학(SCOUT)", "대학창의적자산실용화지원(BRIDGE 3.0)"] },
-      { name: "산학교육혁신팀", projects: ["첨단분야 혁신융합대학사업", "산학협력 인프라 구축사업"] }
-    ]
-  },
-  global: {
-    name: "국제협력본부",
-    icon: <Globe className="w-12 h-12 text-indigo-500" />,
-    desc: "글로벌 연구 네트워크를 구축하고 ODA 등 국제 협력을 선도합니다.",
-    teams: [
-      { name: "국제협력총괄팀", projects: ["국제협력 전략 수립", "해외우수연구기관 협력허브 구축"] },
-      { name: "국제협력네트워크팀", projects: ["해외주재 사무소 운영", "외국박사학위신고 및 조회지원"] },
-      { name: "국제협력기반조성팀", projects: ["해외우수과학자유치사업(Brain Pool)", "우수연구자교류지원(BrainLink)"] },
-      { name: "국제개발협력팀", projects: ["지식재산 활용 과학기술지원사업(ODA)", "글로벌교육지원사업"] },
-      { name: "미주아시아협력팀", projects: ["한-미/한-아시아 국가간 협력기반조성", "전략적 국제공동연구"] },
-      { name: "구주아프리카협력팀", projects: ["한-EU 교육협력사업", "국제협력 네트워크전략강화"] },
-      { name: "호라이즌유럽다자협력팀", projects: ["Horizon Europe 참여 지원", "다자간 협력 프로그램"] }
-    ]
-  },
-  rise: {
-    name: "중앙RISE센터",
-    icon: <Building2 className="w-12 h-12 text-orange-500" />,
-    desc: "지역 혁신 중심 대학 지원 체계(RISE)를 구축하고 지역 발전을 견인합니다.",
-    teams: [
-      { name: "RISE총괄팀", projects: ["지역혁신중심 대학지원체계(RISE) 구축", "RISE체계 고도화 전략 수립"] },
-      { name: "RISE지원팀", projects: ["지자체-대학 협력기반 지역혁신사업", "지역 RISE 센터 운영 지원"] },
-      { name: "RISE성과관리팀", projects: ["글로컬대학 지원", "RISE체계 성과 분석 및 공유"] }
-    ]
-  },
-  it: {
-    name: "정보화관리실",
-    icon: <Atom className="w-12 h-12 text-cyan-600" />,
-    desc: "재단의 정보 시스템을 구축·운영하고 연구비 관리 시스템을 고도화합니다.",
-    teams: [
-      { name: "정보시스템총괄지원팀", projects: ["연구정보화사업", "차세대 통합 연구지원시스템(IRIS) 연계"] },
-      { name: "정보보안팀", projects: ["정보보안 및 개인정보보호 관리", "사이버위협 대응"] },
-      { name: "범부처연구비관리팀", projects: ["범부처 연구비통합관리시스템 구축 및 운영", "통합이지바로 자금운용"] }
-    ]
-  },
-  audit: {
-    name: "감사실",
-    icon: <ShieldCheck className="w-12 h-12 text-slate-600" />,
-    desc: "투명하고 공정한 연구행정 구현을 위해 감시하고 예방합니다.",
-    teams: [
-      { name: "감사총괄팀", projects: ["종합감사 계획 수립 및 실시", "청렴옴부즈맨 제도 운영"] },
-      { name: "전략감사팀", projects: ["성과감사 및 특정감사 수행", "위탁사업 회계감사"] }
-    ]
-  }
-};
-
-const App = () => {
-  const [step, setStep] = useState('intro');
-  const [formData, setFormData] = useState({
-    mbti: '',
-    bloodType: '',
-    birthDate: '',
-    currentDept: '',
-    workYears: ''
-  });
-  const [resultData, setResultData] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    let formattedValue = value;
-
-    if (name === 'mbti') formattedValue = value.toUpperCase().slice(0, 4);
-    if (name === 'bloodType') formattedValue = value.toUpperCase().slice(0, 2);
-    if (name === 'birthDate') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 6);
-    if (name === 'workYears') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 2);
-
-    setFormData({
-      ...formData,
-      [name]: formattedValue
-    });
-  };
-
-  const findCurrentDivisionKey = (deptName) => {
-    if (!deptName) return null;
-    const cleanDeptName = deptName.replace(/\s/g, ''); 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NRF Fit - 직무 진단</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18.2.0",
+                "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+                "lucide-react": "https://esm.sh/lucide-react@0.263.1"
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    for (const [key, value] of Object.entries(nrfStructure)) {
-      const foundTeam = value.teams.some(team => team.name.includes(cleanDeptName) || cleanDeptName.includes(team.name));
-      if (foundTeam) return key;
-      if (value.name.includes(cleanDeptName) || cleanDeptName.includes(value.name)) return key;
-    }
-    return null;
-  };
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
 
-  const analyzeMBTI = (mbti) => {
-    const traits = {
-      'E': '대외 소통과 네트워크 확장에 강점',
-      'I': '깊이 있는 분석과 신중한 기획에 강점',
-      'S': '실무적 감각과 데이터 기반 처리에 능함',
-      'N': '미래 통찰력과 전략적 사고에 능함',
-      'T': '객관적 판단과 효율적 문제해결 선호',
-      'F': '가치 중심적 사고와 이해관계 조율 선호',
-      'J': '체계적 계획 수립과 안정적 운영 선호',
-      'P': '유연한 상황 대처와 변화 주도 선호'
-    };
-    return `${traits[mbti[0]]}이며, ${traits[mbti[1]]}을 보입니다. 또한 ${traits[mbti[2]]}하고 ${traits[mbti[3]]}하는 성향입니다.`;
-  };
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { Sparkles, Activity, FileText, CheckCircle, Brain, Globe, Users, Coins, Microscope, BookOpen, Atom, Building2, Target, Search, ShieldCheck, Quote, Bot } from 'lucide-react';
 
-  const getDestinyKeyword = (birthDate) => {
-    const sum = birthDate.split('').reduce((acc, curr) => acc + parseInt(curr), 0);
-    const keywords = [
-      "개척 (Pioneering)", "조정 (Coordination)", "심화 (Deepening)", 
-      "확산 (Expansion)", "혁신 (Innovation)", "안정 (Stability)", 
-      "융합 (Convergence)", "지원 (Support)", "감시 (Auditing)", "전략 (Strategy)"
-    ];
-    return keywords[sum % 10];
-  };
-
-  const calculateResult = () => {
-    setLoading(true);
-    
-    setTimeout(() => {
-      const { mbti, bloodType, birthDate, currentDept, workYears } = formData;
-      
-      let targetDiv = 'management';
-      
-      if (mbti.includes('N') && mbti.includes('T')) targetDiv = 'strategy';
-      else if (mbti.includes('S') && mbti.includes('T') && mbti.includes('J')) targetDiv = 'management';
-      else if (mbti.includes('N') && mbti.includes('F')) targetDiv = 'humanities';
-      else if (mbti.includes('S') && mbti.includes('F')) targetDiv = 'talent';
-      else if (mbti.includes('I') && mbti.includes('T') && mbti.includes('P')) targetDiv = 'basic';
-      else if (mbti.includes('E') && mbti.includes('P')) targetDiv = 'global';
-      
-      if (['ENTJ', 'INTJ'].includes(mbti)) targetDiv = 'planning';
-      if (['ISTJ'].includes(mbti)) targetDiv = 'audit';
-      if (['ESTJ'].includes(mbti)) targetDiv = 'policy';
-      if (['INTP', 'ISTP'].includes(mbti)) targetDiv = 'it';
-      if (['ENFJ', 'ESFJ'].includes(mbti)) targetDiv = 'rise';
-
-      const bloodIndex = ['A', 'B', 'O', 'AB'].indexOf(bloodType.replace('RH', '').trim()) || 0;
-      const teamList = nrfStructure[targetDiv].teams;
-      const teamIndex = (bloodIndex + mbti.length + parseInt(birthDate.slice(-1))) % teamList.length;
-      const selectedTeamObj = teamList[teamIndex];
-      const selectedTeamName = selectedTeamObj.name;
-
-      const birthSum = birthDate.split('').reduce((acc, curr) => acc + parseInt(curr), 0);
-      const projectList = selectedTeamObj.projects;
-      const projectIndex = birthSum % projectList.length;
-      const selectedProject = projectList[projectIndex];
-      const destinyKeyword = getDestinyKeyword(birthDate);
-
-      const matchRate = 75 + (birthSum % 25); 
-
-      const currentDivKey = findCurrentDivisionKey(currentDept);
-      let currentMatchRate = 0;
-      let currentMatchDesc = "";
-
-      if (!currentDept) {
-        currentMatchRate = 0;
-        currentMatchDesc = "입력 정보 없음";
-      } else if (currentDivKey === targetDiv) {
-        currentMatchRate = 90 + (birthSum % 10);
-        currentMatchDesc = "현재 직무가 귀하의 성향과 완벽히 일치하여 최상의 시너지를 내고 있습니다.";
-      } else if (currentDivKey) {
-        const relations = {
-          'planning': ['management', 'policy', 'audit'],
-          'strategy': ['basic', 'it', 'planning'],
-          'basic': ['strategy', 'global', 'talent'],
-          'management': ['planning', 'it', 'audit'],
-          'policy': ['planning', 'it', 'rise'],
-          'humanities': ['talent', 'policy', 'rise'],
-          'talent': ['humanities', 'rise', 'global'],
-          'global': ['basic', 'talent'],
-          'rise': ['talent', 'policy', 'humanities'],
-          'it': ['management', 'planning', 'policy'],
-          'audit': ['planning', 'management']
+        // --- 데이터 베이스 (연구원님 원본 데이터) ---
+        const nrfStructure = {
+          planning: {
+            name: "기획조정본부",
+            icon: <Target className="w-12 h-12 text-teal-600" />,
+            desc: "재단의 경영 목표를 수립하고, 예산 및 조직 혁신 전략을 총괄 조정합니다.",
+            teams: [
+              { name: "경영전략팀", projects: ["기관 경영목표 및 기획", "이사회 운영", "대국회 업무"] },
+              { name: "예산팀", projects: ["정부출연금 예산 요구 및 편성", "중기 재무관리 계획 수립"] },
+              { name: "혁신전략팀", projects: ["경영혁신전략 수립", "ESG경영 추진", "조직 성과관리 및 평가"] },
+              { name: "윤리경영팀", projects: ["반부패·청렴 추진계획 수립", "인권경영 계획수립 및 실행"] },
+              { name: "홍보전략팀", projects: ["기관 경영활동 홍보", "대한민국 과학기술대전 개최"] }
+            ]
+          },
+          management: {
+            name: "경영지원본부",
+            icon: <Coins className="w-12 h-12 text-gray-500" />,
+            desc: "인사, 재무, 시설 등 기관의 안정적 운영을 위한 핵심 기반을 제공합니다.",
+            teams: [
+              { name: "인재경영팀", projects: ["인사관리 및 채용", "직원 교육 및 복지"] },
+              { name: "재무회계팀", projects: ["결산 및 세무 관리", "자금 집행"] },
+              { name: "기금관리팀", projects: ["연구산업기반조성사업", "과학기술진흥기금 운용"] },
+              { name: "구매자산팀", projects: ["공사·용역 계약", "물품 구매 및 자산 관리"] },
+              { name: "시설환경팀", projects: ["청사 시설물 유지 관리", "에너지 절약 추진"] },
+              { name: "서울청사지원TF", projects: ["서울청사 시설 및 안전 관리"] },
+              { name: "안전보건팀", projects: ["기관 안전보건경영체계 관리", "중대재해 예방"] }
+            ]
+          },
+          policy: {
+            name: "연구정책성과전략본부",
+            icon: <Activity className="w-12 h-12 text-red-500" />,
+            desc: "국가 R&D 정책을 기획하고 연구 성과를 분석·확산하며 올바른 연구 문화를 조성합니다.",
+            teams: [
+              { name: "연구정책기획팀", projects: ["연구지원정책선진화기반조성", "국내외 R&D 동향 조사분석"] },
+              { name: "연구사업총괄팀", projects: ["연구사업 총괄 조정", "과기특성화대학 기술사업화 선도모델"] },
+              { name: "성과확산혁신팀", projects: ["우수과학자포상사업", "금요일에 과학터치", "R&D 성과 확산"] },
+              { name: "연구데이터분석팀", projects: ["KCI(한국학술지인용색인) 시스템 운영", "연구사업 통계 분석"] },
+              { name: "학술연구기반지원팀", projects: ["학술지 평가 및 등재", "인문사회분야 학술단체지원사업"] },
+              { name: "윤리정책법무팀", projects: ["연구윤리활동지원사업", "연구부정행위 신고센터 운영"] },
+              { name: "연구정산총괄팀", projects: ["연구비 정산 총괄", "정산 제도 및 시스템 개선"] }
+            ]
+          },
+          basic: {
+            name: "기초연구본부",
+            icon: <Microscope className="w-12 h-12 text-blue-500" />,
+            desc: "전 학문 분야의 기초연구를 폭넓게 지원하여 국가 기초연구 역량을 강화합니다.",
+            teams: [
+              { name: "기초연구총괄팀", projects: ["기초연구사업 종합계획 수립", "기초연구 통계 관리"] },
+              { name: "개인연구지원팀", projects: ["글로벌 리더연구", "중견연구", "한우물파기 기초연구", "세종과학펠로우십", "생애첫연구"] },
+              { name: "집단연구지원팀", projects: ["글로벌 기초연구실", "글로벌 선도연구센터", "기초연구실험데이터글로벌허브구축"] },
+              { name: "이공학술지원팀", projects: ["학문후속세대지원", "대학연구기반구축", "학술연구혁신지원", "보호연구"] },
+              { name: "자연과학단", projects: ["자연과학 분야 연구동향 조사", "분야별 지원체계 고도화"] },
+              { name: "생명과학단", projects: ["생명과학 분야 연구동향 조사", "바이오 기초연구 기획"] },
+              { name: "의약학단", projects: ["의약학 분야 연구동향 조사", "기초의과학 선도연구센터 관리"] },
+              { name: "공학단", projects: ["공학 분야 연구동향 조사", "공학분야 선도연구센터 관리"] },
+              { name: "ICT융합연구단", projects: ["ICT/융합 분야 연구동향 조사", "융합연구 활성화 기획"] }
+            ]
+          },
+          humanities: {
+            name: "인문사회연구본부",
+            icon: <BookOpen className="w-12 h-12 text-green-500" />,
+            desc: "인문사회 분야의 학술 및 연구개발 지원을 총괄하며 인문학적 가치를 확산합니다.",
+            teams: [
+              { name: "인문사회연구총괄팀", projects: ["인문학진흥전담기관 운영", "인문학대중화사업", "기초학문자료센터(KRM) 운영"] },
+              { name: "인문사회연구자지원팀", projects: ["인문사회학술연구교수(A/B유형)", "신진/중견연구자지원사업", "명저번역지원사업"] },
+              { name: "인문사회연구소지원팀", projects: ["인문사회연구소지원사업", "인문한국플러스(HK+)지원사업", "사회과학연구지원사업(SSK)"] },
+              { name: "인문학단", projects: ["어학/문학/역사/철학 분야 연구동향 조사", "인문학 학술지원 기획"] },
+              { name: "사회과학단", projects: ["법/정치/경제/사회 분야 연구동향 조사", "사회과학 학술지원 기획"] },
+              { name: "문화융복합단", projects: ["예술/체육/복합학 분야 연구동향 조사", "문화융복합 학술지원 기획"] }
+            ]
+          },
+          strategy: {
+            name: "국가전략연구본부",
+            icon: <Brain className="w-12 h-12 text-purple-500" />,
+            desc: "국가 필수전략기술 및 미래 유망 기술 확보를 위한 대형 국책 연구를 주도합니다.",
+            teams: [
+              { name: "국가전략사업총괄팀", projects: ["국가전략연구본부 사업 총괄 조정", "신규사업 기획 총괄"] },
+              { name: "국가전략사업평가1팀", projects: ["바이오/의약/공공 분야 과제 평가 관리", "평가위원 DB 관리"] },
+              { name: "국가전략사업평가2팀", projects: ["나노/정보/양자/원자력 분야 과제 평가 관리", "평가 제도 개선"] },
+              { name: "한계도전전략센터", projects: ["한계도전 R&D 프로젝트 (High-Risk, High-Return)"] },
+              { name: "신약단", projects: ["국가신약개발사업", "감염병 차세대 백신 기초원천 핵심기술개발"] },
+              { name: "차세대바이오단", projects: ["바이오·의료기술개발사업", "합성생물학 핵심기술개발"] },
+              { name: "뇌·첨단의공학단", projects: ["뇌과학선도융합기술개발", "범부처 전주기 의료기기 연구개발"] },
+              { name: "반도체·디스플레이단", projects: ["차세대 지능형 반도체기술개발", "미래 디스플레이 전략연구실"] },
+              { name: "나노·소재단", projects: ["나노·소재기술개발사업", "미래소재디스커버리사업"] },
+              { name: "양자기술단", projects: ["양자컴퓨팅 연구인프라 구축", "양자정보과학 연구개발생태계 조성"] },
+              { name: "원자력단", projects: ["혁신형 소형모듈원자로(i-SMR) 기술개발", "가동원전 안전성 향상 핵심기술"] },
+              { name: "거대인프라·방사선단", projects: ["다목적 방사광가속기 구축사업", "중이온가속기 선행 R&D"] },
+              { name: "공공기술단", projects: ["재난안전플랫폼기술개발", "미래국방혁신기술개발"] },
+              { name: "에너지·환경단", projects: ["미래수소원천기술개발", "기후기술국제협력촉진"] },
+              { name: "정보·융합기술단", projects: ["미래개척융합과학기술개발", "슈퍼컴퓨터 개발 선도"] }
+            ]
+          },
+          talent: {
+            name: "학술진흥본부",
+            icon: <Users className="w-12 h-12 text-yellow-500" />,
+            desc: "대학의 교육·연구 역량을 강화하고 미래 사회를 이끌 인재를 양성합니다.",
+            teams: [
+              { name: "학술총괄팀", projects: ["학술진흥본부 사업 총괄", "대학연구기관 전문연구요원 관리"] },
+              { name: "BK21사업팀", projects: ["4단계 두뇌한국(BK)21 사업 (미래인재/혁신인재/대학원혁신)"] },
+              { name: "인재양성사업팀", projects: ["이공계 연구생활장려금", "과학영재양성사업", "여성과학기술인 지원"] },
+              { name: "대학지원팀", projects: ["대학혁신지원사업", "국립대학육성사업"] },
+              { name: "전문대학지원팀", projects: ["전문대학 혁신지원사업", "마이스터대 지원사업"] },
+              { name: "산학협력기반팀", projects: ["창업교육 혁신선도대학(SCOUT)", "대학창의적자산실용화지원(BRIDGE 3.0)"] },
+              { name: "산학교육혁신팀", projects: ["첨단분야 혁신융합대학사업", "산학협력 인프라 구축사업"] }
+            ]
+          },
+          global: {
+            name: "국제협력본부",
+            icon: <Globe className="w-12 h-12 text-indigo-500" />,
+            desc: "글로벌 연구 네트워크를 구축하고 ODA 등 국제 협력을 선도합니다.",
+            teams: [
+              { name: "국제협력총괄팀", projects: ["국제협력 전략 수립", "해외우수연구기관 협력허브 구축"] },
+              { name: "국제협력네트워크팀", projects: ["해외주재 사무소 운영", "외국박사학위신고 및 조회지원"] },
+              { name: "국제협력기반조성팀", projects: ["해외우수과학자유치사업(Brain Pool)", "우수연구자교류지원(BrainLink)"] },
+              { name: "국제개발협력팀", projects: ["지식재산 활용 과학기술지원사업(ODA)", "글로벌교육지원사업"] },
+              { name: "미주아시아협력팀", projects: ["한-미/한-아시아 국가간 협력기반조성", "전략적 국제공동연구"] },
+              { name: "구주아프리카협력팀", projects: ["한-EU 교육협력사업", "국제협력 네트워크전략강화"] },
+              { name: "호라이즌유럽다자협력팀", projects: ["Horizon Europe 참여 지원", "다자간 협력 프로그램"] }
+            ]
+          },
+          rise: {
+            name: "중앙RISE센터",
+            icon: <Building2 className="w-12 h-12 text-orange-500" />,
+            desc: "지역 혁신 중심 대학 지원 체계(RISE)를 구축하고 지역 발전을 견인합니다.",
+            teams: [
+              { name: "RISE총괄팀", projects: ["지역혁신중심 대학지원체계(RISE) 구축", "RISE체계 고도화 전략 수립"] },
+              { name: "RISE지원팀", projects: ["지자체-대학 협력기반 지역혁신사업", "지역 RISE 센터 운영 지원"] },
+              { name: "RISE성과관리팀", projects: ["글로컬대학 지원", "RISE체계 성과 분석 및 공유"] }
+            ]
+          },
+          it: {
+            name: "정보화관리실",
+            icon: <Atom className="w-12 h-12 text-cyan-600" />,
+            desc: "재단의 정보 시스템을 구축·운영하고 연구비 관리 시스템을 고도화합니다.",
+            teams: [
+              { name: "정보시스템총괄지원팀", projects: ["연구정보화사업", "차세대 통합 연구지원시스템(IRIS) 연계"] },
+              { name: "정보보안팀", projects: ["정보보안 및 개인정보보호 관리", "사이버위협 대응"] },
+              { name: "범부처연구비관리팀", projects: ["범부처 연구비통합관리시스템 구축 및 운영", "통합이지바로 자금운용"] }
+            ]
+          },
+          audit: {
+            name: "감사실",
+            icon: <ShieldCheck className="w-12 h-12 text-slate-600" />,
+            desc: "투명하고 공정한 연구행정 구현을 위해 감시하고 예방합니다.",
+            teams: [
+              { name: "감사총괄팀", projects: ["종합감사 계획 수립 및 실시", "청렴옴부즈맨 제도 운영"] },
+              { name: "전략감사팀", projects: ["성과감사 및 특정감사 수행", "위탁사업 회계감사"] }
+            ]
+          }
         };
-        
-        if (relations[targetDiv]?.includes(currentDivKey)) {
-          currentMatchRate = 75 + (birthSum % 15);
-          currentMatchDesc = "현재 부서에서의 경험이 추천 직무 수행에 강력한 자산이 될 것입니다.";
-        } else {
-          currentMatchRate = 50 + (birthSum % 20);
-          currentMatchDesc = "현재 업무와 성향 간의 차이가 존재합니다. 새로운 직무 전환 시 잠재력이 폭발할 수 있습니다.";
-        }
-      } else {
-        currentMatchRate = 60;
-        currentMatchDesc = "입력하신 부서 정보를 기반으로 새로운 직무 적합성을 탐색했습니다.";
-      }
 
-      const mbtiAnalysis = analyzeMBTI(mbti);
-      const years = parseInt(workYears) || 0;
-      
-      let careerContext = "";
-      if (years < 3) careerContext = "새로운 시각과 열정을 바탕으로";
-      else if (years < 10) careerContext = `${years}년 간 축적된 실무 노하우를 접목하여`;
-      else careerContext = "조직 전반을 아우르는 혜안과 경륜을 발휘하여";
+        const App = () => {
+          const [step, setStep] = useState('intro');
+          const [formData, setFormData] = useState({
+            mbti: '',
+            bloodType: '',
+            birthDate: '',
+            currentDept: '',
+            workYears: ''
+          });
+          const [resultData, setResultData] = useState(null);
+          const [loading, setLoading] = useState(false);
 
-      const report = {
-        mbtiSection: `귀하의 MBTI(${mbti})는 ${mbtiAnalysis} 이러한 성향은 한국연구재단의 '${nrfStructure[targetDiv].name}' 업무 특성과 논리적으로 부합합니다.`,
-        sajuSection: `생년월일(사주)에 기반한 2025년 귀하의 핵심 업무 키워드는 '${destinyKeyword}'입니다. 이는 단순한 우연이 아니며, 해당 시기에 가장 큰 성과를 낼 수 있는 에너지 흐름을 의미합니다.`,
-        taskSection: `따라서, ${careerContext} [${selectedTeamName}]에서 [${selectedProject}] 업무를 수행하는 것이 최적입니다. 특히 이 업무는 귀하의 '${destinyKeyword}' 기운과 맞물려 재단의 비전 달성에 크게 기여할 것입니다.`
-      };
+          const handleInputChange = (e) => {
+            const { name, value } = e.target;
+            let formattedValue = value;
 
-      setResultData({
-        div: nrfStructure[targetDiv].name,
-        icon: nrfStructure[targetDiv].icon,
-        desc: nrfStructure[targetDiv].desc,
-        team: selectedTeamName,
-        project: selectedProject,
-        rate: matchRate,
-        currentMatchRate: currentMatchRate,
-        currentMatchDesc: currentMatchDesc,
-        report: report
-      });
-      
-      setStep('result');
-      setLoading(false);
-    }, 2000);
-  };
+            if (name === 'mbti') formattedValue = value.toUpperCase().slice(0, 4);
+            if (name === 'bloodType') formattedValue = value.toUpperCase().slice(0, 2);
+            if (name === 'birthDate') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 6);
+            if (name === 'workYears') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 2);
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans text-gray-800">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-        
-        {/* Header */}
-        <div className="bg-blue-900 p-6 text-center">
-          <h1 className="text-xl font-bold text-white tracking-wide">한국연구재단(NRF)</h1>
-          <p className="text-blue-200 text-sm mt-1">AI 기반 적합 부서 정밀 진단</p>
-        </div>
+            setFormData({
+              ...formData,
+              [name]: formattedValue
+            });
+          };
 
-        {/* Content */}
-        <div className="p-8">
-          {step === 'intro' && !loading && (
-            <div className="space-y-6">
-              <div className="text-center space-y-2 mb-8">
-                {/* 메인 이모티콘: Bot 아이콘으로 변경 */}
-                <div className="flex justify-center mb-4">
-                  <Bot className="w-40 h-40 text-blue-600 animate-pulse" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">당신에게 적합한<br/>부서 및 사업을</h2>
-                <p className="text-lg font-medium text-blue-600">AI보다 정확하게 진단해드립니다</p>
-                <p className="text-xs text-gray-400 mt-4">
-                  * 입력 정보는 재단 사무분장 및 2025년 사업현황<br/>데이터와 연결되어 정밀 분석됩니다.
-                </p>
-              </div>
+          const findCurrentDivisionKey = (deptName) => {
+            if (!deptName) return null;
+            const cleanDeptName = deptName.replace(/\s/g, ''); 
+            
+            for (const [key, value] of Object.entries(nrfStructure)) {
+              const foundTeam = value.teams.some(team => team.name.includes(cleanDeptName) || cleanDeptName.includes(team.name));
+              if (foundTeam) return key;
+              if (value.name.includes(cleanDeptName) || cleanDeptName.includes(value.name)) return key;
+            }
+            return null;
+          };
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">MBTI</label>
-                  <input
-                    type="text"
-                    name="mbti"
-                    value={formData.mbti}
-                    onChange={handleInputChange}
-                    placeholder="예: 영문 네글자 (ENFP)"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
-                    maxLength={4}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">혈액형</label>
-                  <input
-                    type="text"
-                    name="bloodType"
-                    value={formData.bloodType}
-                    onChange={handleInputChange}
-                    placeholder="예: 영문 한글자 또는 두글자"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
-                    maxLength={2}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">생년월일</label>
-                  <input
-                    type="text"
-                    name="birthDate"
-                    value={formData.birthDate}
-                    onChange={handleInputChange}
-                    placeholder="예: YYMMDD (900101)"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
-                    maxLength={6}
-                  />
-                </div>
-                
-                <div className="pt-2 border-t border-gray-100">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">현재 부서</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      name="currentDept"
-                      value={formData.currentDept}
-                      onChange={handleInputChange}
-                      placeholder="예: 혁신전략팀"
-                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1 ml-1">* 부서명은 백업데이터와 대조하여 적합도 산출에 활용됩니다.</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">근속년수</label>
-                  <input
-                    type="text"
-                    name="workYears"
-                    value={formData.workYears}
-                    onChange={handleInputChange}
-                    placeholder="예: 3 (숫자만 입력)"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
-                    maxLength={2}
-                  />
-                </div>
-              </div>
+          const analyzeMBTI = (mbti) => {
+            const traits = {
+              'E': '대외 소통과 네트워크 확장에 강점',
+              'I': '깊이 있는 분석과 신중한 기획에 강점',
+              'S': '실무적 감각과 데이터 기반 처리에 능함',
+              'N': '미래 통찰력과 전략적 사고에 능함',
+              'T': '객관적 판단과 효율적 문제해결 선호',
+              'F': '가치 중심적 사고와 이해관계 조율 선호',
+              'J': '체계적 계획 수립과 안정적 운영 선호',
+              'P': '유연한 상황 대처와 변화 주도 선호'
+            };
+            return `${traits[mbti[0]]}이며, ${traits[mbti[1]]}을 보입니다. 또한 ${traits[mbti[2]]}하고 ${traits[mbti[3]]}하는 성향입니다.`;
+          };
 
-              <button
-                onClick={calculateResult}
-                disabled={formData.mbti.length < 4 || !formData.bloodType || formData.birthDate.length < 6}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold rounded-xl shadow-lg transform transition active:scale-95 mt-6 flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-5 h-5" />
-                적합 직무 진단하기
-              </button>
-            </div>
-          )}
+          const getDestinyKeyword = (birthDate) => {
+            const sum = birthDate.split('').reduce((acc, curr) => acc + parseInt(curr), 0);
+            const keywords = [
+              "개척 (Pioneering)", "조정 (Coordination)", "심화 (Deepening)", 
+              "확산 (Expansion)", "혁신 (Innovation)", "안정 (Stability)", 
+              "융합 (Convergence)", "지원 (Support)", "감시 (Auditing)", "전략 (Strategy)"
+            ];
+            return keywords[sum % 10];
+          };
 
-          {loading && (
-            <div className="py-20 text-center space-y-6">
-              <div className="relative w-24 h-24 mx-auto">
-                <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-200 rounded-full"></div>
-                <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-800">정밀 데이터 분석 중...</h3>
-                <p className="text-sm text-gray-500 mt-2">
-                  MBTI 성향, 사주, 재단 직제 데이터를<br/>
-                  종합적으로 연결하여 최적값을 도출합니다.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {step === 'result' && resultData && (
-            <div className="animate-fade-in-up">
+          const calculateResult = () => {
+            setLoading(true);
+            
+            setTimeout(() => {
+              const { mbti, bloodType, birthDate, currentDept, workYears } = formData;
               
-              {/* 추천 적합도 카드 */}
-              <div className="text-center mb-6">
-                <div className="inline-block p-2 rounded-full bg-blue-50 mb-2">
-                  <CheckCircle className="w-8 h-8 text-blue-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">추천 직무 결과</h2>
-                <div className="text-sm text-gray-500 mt-1">
-                  추천 직무 적합도: <span className="text-blue-600 font-bold text-lg">{resultData.rate}%</span>
-                </div>
-              </div>
+              let targetDiv = 'management';
+              
+              if (mbti.includes('N') && mbti.includes('T')) targetDiv = 'strategy';
+              else if (mbti.includes('S') && mbti.includes('T') && mbti.includes('J')) targetDiv = 'management';
+              else if (mbti.includes('N') && mbti.includes('F')) targetDiv = 'humanities';
+              else if (mbti.includes('S') && mbti.includes('F')) targetDiv = 'talent';
+              else if (mbti.includes('I') && mbti.includes('T') && mbti.includes('P')) targetDiv = 'basic';
+              else if (mbti.includes('E') && mbti.includes('P')) targetDiv = 'global';
+              
+              if (['ENTJ', 'INTJ'].includes(mbti)) targetDiv = 'planning';
+              if (['ISTJ'].includes(mbti)) targetDiv = 'audit';
+              if (['ESTJ'].includes(mbti)) targetDiv = 'policy';
+              if (['INTP', 'ISTP'].includes(mbti)) targetDiv = 'it';
+              if (['ENFJ', 'ESFJ'].includes(mbti)) targetDiv = 'rise';
 
-              <div className="bg-white border-2 border-blue-100 rounded-xl p-6 mb-4 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 z-0"></div>
+              const bloodIndex = ['A', 'B', 'O', 'AB'].indexOf(bloodType.replace('RH', '').trim()) || 0;
+              const teamList = nrfStructure[targetDiv].teams;
+              const teamIndex = (bloodIndex + mbti.length + parseInt(birthDate.slice(-1))) % teamList.length;
+              const selectedTeamObj = teamList[teamIndex];
+              const selectedTeamName = selectedTeamObj.name;
+
+              const birthSum = birthDate.split('').reduce((acc, curr) => acc + parseInt(curr), 0);
+              const projectList = selectedTeamObj.projects;
+              const projectIndex = birthSum % projectList.length;
+              const selectedProject = projectList[projectIndex];
+              const destinyKeyword = getDestinyKeyword(birthDate);
+
+              const matchRate = 75 + (birthSum % 25); 
+
+              const currentDivKey = findCurrentDivisionKey(currentDept);
+              let currentMatchRate = 0;
+              let currentMatchDesc = "";
+
+              if (!currentDept) {
+                currentMatchRate = 0;
+                currentMatchDesc = "입력 정보 없음";
+              } else if (currentDivKey === targetDiv) {
+                currentMatchRate = 90 + (birthSum % 10);
+                currentMatchDesc = "현재 직무가 귀하의 성향과 완벽히 일치하여 최상의 시너지를 내고 있습니다.";
+              } else if (currentDivKey) {
+                const relations = {
+                  'planning': ['management', 'policy', 'audit'],
+                  'strategy': ['basic', 'it', 'planning'],
+                  'basic': ['strategy', 'global', 'talent'],
+                  'management': ['planning', 'it', 'audit'],
+                  'policy': ['planning', 'it', 'rise'],
+                  'humanities': ['talent', 'policy', 'rise'],
+                  'talent': ['humanities', 'rise', 'global'],
+                  'global': ['basic', 'talent'],
+                  'rise': ['talent', 'policy', 'humanities'],
+                  'it': ['management', 'planning', 'policy'],
+                  'audit': ['planning', 'management']
+                };
                 
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="mb-4">
-                    {resultData.icon}
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-500 mb-1">최적의 본부</h3>
-                  <div className="text-2xl font-extrabold text-blue-800 mb-4">{resultData.div}</div>
-                  
-                  <div className="w-full h-px bg-gray-200 my-2"></div>
+                if (relations[targetDiv]?.includes(currentDivKey)) {
+                  currentMatchRate = 75 + (birthSum % 15);
+                  currentMatchDesc = "현재 부서에서의 경험이 추천 직무 수행에 강력한 자산이 될 것입니다.";
+                } else {
+                  currentMatchRate = 50 + (birthSum % 20);
+                  currentMatchDesc = "현재 업무와 성향 간의 차이가 존재합니다. 새로운 직무 전환 시 잠재력이 폭발할 수 있습니다.";
+                }
+              } else {
+                currentMatchRate = 60;
+                currentMatchDesc = "입력하신 부서 정보를 기반으로 새로운 직무 적합성을 탐색했습니다.";
+              }
 
-                  <div className="w-full flex flex-col gap-3 mt-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-semibold text-gray-400">추천 부서(팀)</div>
-                      <div className="text-md font-bold text-gray-800 text-right">{resultData.team}</div>
-                    </div>
-                    <div className="flex items-start justify-between border-t border-gray-100 pt-2">
-                      <div className="text-xs font-semibold text-gray-400 shrink-0 mt-1">담당 추천 사업</div>
-                      <div className="text-md font-bold text-blue-700 text-right break-keep">{resultData.project}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              const mbtiAnalysis = analyzeMBTI(mbti);
+              const years = parseInt(workYears) || 0;
+              
+              let careerContext = "";
+              if (years < 3) careerContext = "새로운 시각과 열정을 바탕으로";
+              else if (years < 10) careerContext = `${years}년 간 축적된 실무 노하우를 접목하여`;
+              else careerContext = "조직 전반을 아우르는 혜안과 경륜을 발휘하여";
 
-              {/* 현재 부서 적합도 카드 */}
-              {formData.currentDept && (
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 mb-6 shadow-sm">
-                  <h3 className="font-bold text-indigo-900 mb-2 flex items-center justify-between">
-                    <span>현재 부서와의 적합도</span>
-                    <span className="text-xl">{resultData.currentMatchRate}%</span>
-                  </h3>
-                  <div className="w-full bg-indigo-200 rounded-full h-2.5 mb-3">
-                    <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${resultData.currentMatchRate}%` }}></div>
-                  </div>
-                  <p className="text-sm text-indigo-700 text-justify">
-                    {resultData.currentMatchDesc}
-                  </p>
-                </div>
-              )}
+              const report = {
+                mbtiSection: `귀하의 MBTI(${mbti})는 ${mbtiAnalysis} 이러한 성향은 한국연구재단의 '${nrfStructure[targetDiv].name}' 업무 특성과 논리적으로 부합합니다.`,
+                sajuSection: `생년월일(사주)에 기반한 2025년 귀하의 핵심 업무 키워드는 '${destinyKeyword}'입니다. 이는 단순한 우연이 아니며, 해당 시기에 가장 큰 성과를 낼 수 있는 에너지 흐름을 의미합니다.`,
+                taskSection: `따라서, ${careerContext} [${selectedTeamName}]에서 [${selectedProject}] 업무를 수행하는 것이 최적입니다. 특히 이 업무는 귀하의 '${destinyKeyword}' 기운과 맞물려 재단의 비전 달성에 크게 기여할 것입니다.`
+              };
 
-              {/* 정밀 분석 리포트 섹션 */}
-              <div className="bg-gray-50 rounded-xl p-6 mb-6">
-                <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-200 pb-2">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  AI 정밀 분석 리포트
-                </h4>
+              setResultData({
+                div: nrfStructure[targetDiv].name,
+                icon: nrfStructure[targetDiv].icon,
+                desc: nrfStructure[targetDiv].desc,
+                team: selectedTeamName,
+                project: selectedProject,
+                rate: matchRate,
+                currentMatchRate: currentMatchRate,
+                currentMatchDesc: currentMatchDesc,
+                report: report
+              });
+              
+              setStep('result');
+              setLoading(false);
+            }, 2000);
+          };
+
+          return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans text-gray-800">
+              <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
                 
-                <div className="space-y-4">
-                  <div>
-                    <h5 className="text-xs font-bold text-blue-600 mb-1 flex items-center gap-1">
-                      <Brain className="w-3 h-3" /> MBTI 성향 분석
-                    </h5>
-                    <p className="text-sm text-gray-600 leading-relaxed text-justify">
-                      {resultData.report.mbtiSection}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h5 className="text-xs font-bold text-purple-600 mb-1 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> 사주(운세) 분석
-                    </h5>
-                    <p className="text-sm text-gray-600 leading-relaxed text-justify">
-                      {resultData.report.sajuSection}
-                    </p>
-                  </div>
+                {/* Header */}
+                <div className="bg-blue-900 p-6 text-center">
+                  <h1 className="text-xl font-bold text-white tracking-wide">한국연구재단(NRF)</h1>
+                  <p className="text-blue-200 text-sm mt-1">AI 기반 적합 부서 정밀 진단</p>
+                </div>
 
-                  <div>
-                    <h5 className="text-xs font-bold text-green-600 mb-1 flex items-center gap-1">
-                      <Target className="w-3 h-3" /> 직무 연계성 결론
-                    </h5>
-                    <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                      <p className="text-sm text-gray-700 font-medium leading-relaxed text-justify">
-                        <Quote className="w-3 h-3 text-gray-300 inline-block mr-1 -mt-2" />
-                        {resultData.report.taskSection}
-                      </p>
+                {/* Content */}
+                <div className="p-8">
+                  {step === 'intro' && !loading && (
+                    <div className="space-y-6">
+                      <div className="text-center space-y-2 mb-8">
+                        {/* 메인 이모티콘: Bot 아이콘으로 변경 */}
+                        <div className="flex justify-center mb-4">
+                          <Bot className="w-40 h-40 text-blue-600 animate-pulse" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900">당신에게 적합한<br/>부서 및 사업을</h2>
+                        <p className="text-lg font-medium text-blue-600">AI보다 정확하게 진단해드립니다</p>
+                        <p className="text-xs text-gray-400 mt-4">
+                          * 입력 정보는 재단 사무분장 및 2025년 사업현황<br/>데이터와 연결되어 정밀 분석됩니다.
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">MBTI</label>
+                          <input
+                            type="text"
+                            name="mbti"
+                            value={formData.mbti}
+                            onChange={handleInputChange}
+                            placeholder="예: 영문 네글자 (ENFP)"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
+                            maxLength={4}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">혈액형</label>
+                          <input
+                            type="text"
+                            name="bloodType"
+                            value={formData.bloodType}
+                            onChange={handleInputChange}
+                            placeholder="예: 영문 한글자 또는 두글자"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
+                            maxLength={2}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">생년월일</label>
+                          <input
+                            type="text"
+                            name="birthDate"
+                            value={formData.birthDate}
+                            onChange={handleInputChange}
+                            placeholder="예: YYMMDD (900101)"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
+                            maxLength={6}
+                          />
+                        </div>
+                        
+                        <div className="pt-2 border-t border-gray-100">
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">현재 부서</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              name="currentDept"
+                              value={formData.currentDept}
+                              onChange={handleInputChange}
+                              placeholder="예: 혁신전략팀"
+                              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1 ml-1">* 부서명은 백업데이터와 대조하여 적합도 산출에 활용됩니다.</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1">근속년수</label>
+                          <input
+                            type="text"
+                            name="workYears"
+                            value={formData.workYears}
+                            onChange={handleInputChange}
+                            placeholder="예: 3 (숫자만 입력)"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition placeholder-blue-400 bg-blue-50"
+                            maxLength={2}
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={calculateResult}
+                        disabled={formData.mbti.length < 4 || !formData.bloodType || formData.birthDate.length < 6}
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold rounded-xl shadow-lg transform transition active:scale-95 mt-6 flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="w-5 h-5" />
+                        적합 직무 진단하기
+                      </button>
                     </div>
-                  </div>
+                  )}
+
+                  {loading && (
+                    <div className="py-20 text-center space-y-6">
+                      <div className="relative w-24 h-24 mx-auto">
+                        <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-200 rounded-full"></div>
+                        <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-800">정밀 데이터 분석 중...</h3>
+                        <p className="text-sm text-gray-500 mt-2">
+                          MBTI 성향, 사주, 재단 직제 데이터를<br/>
+                          종합적으로 연결하여 최적값을 도출합니다.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {step === 'result' && resultData && (
+                    <div className="animate-fade-in-up">
+                      
+                      {/* 추천 적합도 카드 */}
+                      <div className="text-center mb-6">
+                        <div className="inline-block p-2 rounded-full bg-blue-50 mb-2">
+                          <CheckCircle className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900">추천 직무 결과</h2>
+                        <div className="text-sm text-gray-500 mt-1">
+                          추천 직무 적합도: <span className="text-blue-600 font-bold text-lg">{resultData.rate}%</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-white border-2 border-blue-100 rounded-xl p-6 mb-4 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 z-0"></div>
+                        
+                        <div className="relative z-10 flex flex-col items-center">
+                          <div className="mb-4">
+                            {resultData.icon}
+                          </div>
+                          <h3 className="text-lg font-bold text-gray-500 mb-1">최적의 본부</h3>
+                          <div className="text-2xl font-extrabold text-blue-800 mb-4">{resultData.div}</div>
+                          
+                          <div className="w-full h-px bg-gray-200 my-2"></div>
+
+                          <div className="w-full flex flex-col gap-3 mt-2">
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs font-semibold text-gray-400">추천 부서(팀)</div>
+                              <div className="text-md font-bold text-gray-800 text-right">{resultData.team}</div>
+                            </div>
+                            <div className="flex items-start justify-between border-t border-gray-100 pt-2">
+                              <div className="text-xs font-semibold text-gray-400 shrink-0 mt-1">담당 추천 사업</div>
+                              <div className="text-md font-bold text-blue-700 text-right break-keep">{resultData.project}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 현재 부서 적합도 카드 */}
+                      {formData.currentDept && (
+                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 mb-6 shadow-sm">
+                          <h3 className="font-bold text-indigo-900 mb-2 flex items-center justify-between">
+                            <span>현재 부서와의 적합도</span>
+                            <span className="text-xl">{resultData.currentMatchRate}%</span>
+                          </h3>
+                          <div className="w-full bg-indigo-200 rounded-full h-2.5 mb-3">
+                            <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${resultData.currentMatchRate}%` }}></div>
+                          </div>
+                          <p className="text-sm text-indigo-700 text-justify">
+                            {resultData.currentMatchDesc}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 정밀 분석 리포트 섹션 */}
+                      <div className="bg-gray-50 rounded-xl p-6 mb-6">
+                        <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-200 pb-2">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                          AI 정밀 분석 리포트
+                        </h4>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="text-xs font-bold text-blue-600 mb-1 flex items-center gap-1">
+                              <Brain className="w-3 h-3" /> MBTI 성향 분석
+                            </h5>
+                            <p className="text-sm text-gray-600 leading-relaxed text-justify">
+                              {resultData.report.mbtiSection}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <h5 className="text-xs font-bold text-purple-600 mb-1 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" /> 사주(운세) 분석
+                            </h5>
+                            <p className="text-sm text-gray-600 leading-relaxed text-justify">
+                              {resultData.report.sajuSection}
+                            </p>
+                          </div>
+
+                          <div>
+                            <h5 className="text-xs font-bold text-green-600 mb-1 flex items-center gap-1">
+                              <Target className="w-3 h-3" /> 직무 연계성 결론
+                            </h5>
+                            <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                              <p className="text-sm text-gray-700 font-medium leading-relaxed text-justify">
+                                <Quote className="w-3 h-3 text-gray-300 inline-block mr-1 -mt-2" />
+                                {resultData.report.taskSection}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {setStep('intro'); setFormData({mbti:'', bloodType:'', birthDate:'', currentDept:'', workYears:''});}}
+                        className="w-full py-3 border border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition"
+                      >
+                        다른 정보로 다시 진단하기
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              <button
-                onClick={() => {setStep('intro'); setFormData({mbti:'', bloodType:'', birthDate:'', currentDept:'', workYears:''});}}
-                className="w-full py-3 border border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition"
-              >
-                다른 정보로 다시 진단하기
-              </button>
+              
+              <style>{`
+                @keyframes spin-slow {
+                  from { transform: rotate(0deg); }
+                  to { transform: rotate(360deg); }
+                }
+                .animate-spin-slow {
+                  animation: spin-slow 8s linear infinite;
+                }
+                @keyframes fade-in-up {
+                  from { opacity: 0; transform: translateY(20px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in-up {
+                  animation: fade-in-up 0.5s ease-out forwards;
+                }
+              `}</style>
             </div>
-          )}
-        </div>
-      </div>
-      
-      <style>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-        @keyframes fade-in-up {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 0.5s ease-out forwards;
-        }
-      `}</style>
-    </div>
-  );
-};
+          );
+        };
 
-export default App;
+        // React 앱을 브라우저에 렌더링
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
