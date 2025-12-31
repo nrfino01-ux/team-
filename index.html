@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NRF Fit - 적합 부서 진단</title>
+    <title>NRF Fit - 초정밀 직무 진단</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="importmap">
         {
@@ -19,6 +19,12 @@
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         body { font-family: 'Pretendard', sans-serif; }
+        /* 숫자 입력 화살표 제거 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -27,9 +33,9 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect } from 'react';
         import ReactDOM from 'react-dom/client';
-        import { Sparkles, Activity, FileText, CheckCircle, Brain, Globe, Users, Coins, Microscope, BookOpen, Atom, Building2, Target, Search, ShieldCheck, Quote, Bot, Clock, User } from 'lucide-react';
+        import { Sparkles, Activity, FileText, CheckCircle, Brain, Globe, Users, Coins, Microscope, BookOpen, Atom, Building2, Target, Search, ShieldCheck, Quote, Bot, Clock, User, Calendar } from 'lucide-react';
 
-        // --- 데이터 베이스 (NRF 조직도) ---
+        // --- NRF 조직도 데이터 ---
         const nrfStructure = {
           planning: {
             name: "기획조정본부",
@@ -187,8 +193,9 @@
             mbti: '',
             bloodType: '',
             birthDate: '',
-            birthTime: '', // 시간 추가
-            gender: '',    // 성별 추가
+            birthHour: '',   // 시
+            birthMinute: '', // 분 (추가됨)
+            gender: '',
             currentDept: '',
             workYears: ''
           });
@@ -202,11 +209,13 @@
             if (name === 'mbti') formattedValue = value.toUpperCase().slice(0, 4);
             if (name === 'bloodType') formattedValue = value.toUpperCase().slice(0, 2);
             if (name === 'birthDate') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 6);
-            if (name === 'birthTime') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 2);
+            if (name === 'birthHour') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 2);
+            if (name === 'birthMinute') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 2);
             if (name === 'workYears') formattedValue = value.replace(/[^0-9]/g, '').slice(0, 2);
 
-            // 시간 24시간제 체크
-            if (name === 'birthTime' && formattedValue > 23) formattedValue = '23';
+            // 시간 검증
+            if (name === 'birthHour' && formattedValue > 23) formattedValue = '23';
+            if (name === 'birthMinute' && formattedValue > 59) formattedValue = '59';
 
             setFormData({
               ...formData,
@@ -218,7 +227,7 @@
             setFormData({ ...formData, gender });
           };
 
-          // 시(時)에 따른 자축인묘... 시간대 반환 (Mock Logic)
+          // 자시, 축시 등 시간대 계산
           const getTimeAnimal = (hour) => {
             const h = parseInt(hour);
             if (h >= 23 || h < 1) return "자시(쥐)";
@@ -260,14 +269,13 @@
             return `${traits[mbti[0]]}에 강점이 있고, ${traits[mbti[1]]}에 능합니다. 또한 ${traits[mbti[2]]}를 선호하며 ${traits[mbti[3]]}하는 성향입니다.`;
           };
 
-          const getDestinyKeyword = (birthDate, birthTime, gender) => {
-            const sum = birthDate.split('').reduce((acc, curr) => acc + parseInt(curr), 0) + parseInt(birthTime || 0);
+          const getDestinyKeyword = (birthDate, hour, minute, gender) => {
+            const sum = birthDate.split('').reduce((acc, curr) => acc + parseInt(curr), 0) + parseInt(hour) + parseInt(minute);
             const keywords = [
               "개척 (Pioneering)", "조정 (Coordination)", "심화 (Deepening)", 
               "확산 (Expansion)", "혁신 (Innovation)", "안정 (Stability)", 
               "융합 (Convergence)", "지원 (Support)", "감시 (Auditing)", "전략 (Strategy)"
             ];
-            // 성별에 따라 키워드 인덱스 미세 조정 (음양 조화 Mock)
             const adjust = gender === 'F' ? 1 : 0;
             return keywords[(sum + adjust) % 10];
           };
@@ -276,9 +284,9 @@
             setLoading(true);
             
             setTimeout(() => {
-              const { mbti, bloodType, birthDate, birthTime, gender, currentDept, workYears } = formData;
+              const { mbti, bloodType, birthDate, birthHour, birthMinute, gender, currentDept, workYears } = formData;
               
-              // 1. MBTI 기반 추천 본부 (기본 로직)
+              // 1. MBTI 기반 추천 본부 선정
               let targetDiv = 'management';
               if (mbti.includes('N') && mbti.includes('T')) targetDiv = 'strategy';
               else if (mbti.includes('S') && mbti.includes('T') && mbti.includes('J')) targetDiv = 'management';
@@ -293,32 +301,34 @@
               if (['INTP', 'ISTP'].includes(mbti)) targetDiv = 'it';
               if (['ENFJ', 'ESFJ'].includes(mbti)) targetDiv = 'rise';
 
-              // 2. 세부 팀 및 프로젝트 선정 (사주 요소 결합)
+              // 2. 세부 팀 및 프로젝트 선정 (분 단위까지 고려한 랜덤 시드)
               const bloodIndex = ['A', 'B', 'O', 'AB'].indexOf(bloodType.replace('RH', '').trim()) || 0;
               const teamList = nrfStructure[targetDiv].teams;
               
-              // 태어난 시간과 성별이 팀 선정 난수에 영향
               const genderVal = gender === 'M' ? 1 : 2;
-              const timeVal = parseInt(birthTime) || 0;
-              const uniqueSeed = bloodIndex + mbti.length + parseInt(birthDate.slice(-1)) + timeVal + genderVal;
+              const hourVal = parseInt(birthHour) || 0;
+              const minVal = parseInt(birthMinute) || 0;
+              
+              // 분(Minute)이 결과값에 영향을 미침
+              const uniqueSeed = bloodIndex + mbti.length + parseInt(birthDate.slice(-1)) + hourVal + minVal + genderVal;
               
               const teamIndex = uniqueSeed % teamList.length;
               const selectedTeamObj = teamList[teamIndex];
               const selectedTeamName = selectedTeamObj.name;
 
               const projectList = selectedTeamObj.projects;
-              const projectIndex = (uniqueSeed + 2) % projectList.length;
+              const projectIndex = (uniqueSeed + 7) % projectList.length;
               const selectedProject = projectList[projectIndex];
               
-              const destinyKeyword = getDestinyKeyword(birthDate, birthTime, gender);
-              const timeAnimal = getTimeAnimal(birthTime);
+              const destinyKeyword = getDestinyKeyword(birthDate, hourVal, minVal, gender);
+              const timeAnimal = getTimeAnimal(birthHour);
 
               // 3. 적합도 계산
               const birthSum = parseInt(birthDate.slice(-2));
-              let matchRate = 75 + ((birthSum + timeVal) % 25); 
+              let matchRate = 75 + ((birthSum + hourVal + minVal) % 25); 
               if(matchRate > 99) matchRate = 99;
 
-              // 4. 현재 부서 적합도
+              // 4. 현재 부서 매칭
               const currentDivKey = findCurrentDivisionKey(currentDept);
               let currentMatchRate = 0;
               let currentMatchDesc = "";
@@ -327,7 +337,7 @@
                 currentMatchRate = 0;
                 currentMatchDesc = "입력 정보 없음";
               } else if (currentDivKey === targetDiv) {
-                currentMatchRate = 92 + (timeVal % 7);
+                currentMatchRate = 92 + (minVal % 7);
                 currentMatchDesc = "현재 직무가 귀하의 사주 기운과 완벽히 일치하여 최상의 시너지를 내고 있습니다.";
               } else if (currentDivKey) {
                 const relations = {
@@ -345,10 +355,10 @@
                 };
                 
                 if (relations[targetDiv]?.includes(currentDivKey)) {
-                  currentMatchRate = 78 + (timeVal % 10);
+                  currentMatchRate = 78 + (minVal % 10);
                   currentMatchDesc = "현재 부서에서의 경험이 타고난 운세를 보완하며 강력한 자산이 되고 있습니다.";
                 } else {
-                  currentMatchRate = 55 + (timeVal % 15);
+                  currentMatchRate = 55 + (minVal % 15);
                   currentMatchDesc = "현재 업무와 기운의 흐름 간 차이가 존재합니다. 변화를 통해 잠재력이 폭발할 수 있습니다.";
                 }
               } else {
@@ -364,12 +374,11 @@
               else if (years < 10) careerContext = `${years}년 간 축적된 실무 노하우를 접목하여`;
               else careerContext = "조직 전반을 아우르는 혜안과 경륜을 발휘하여";
 
-              // 성별/시간에 따른 추가 멘트
               const sajuContext = `${gender === 'M' ? '양(陽)' : '음(陰)'}의 기운과 '${timeAnimal}'의 특성`;
 
               const report = {
                 mbtiSection: `귀하의 MBTI(${mbti})는 ${mbtiAnalysis} 이러한 성향은 한국연구재단의 '${nrfStructure[targetDiv].name}' 업무 특성과 논리적으로 부합합니다.`,
-                sajuSection: `생년월일시를 종합 분석한 결과, 귀하는 ${sajuContext}을 타고났습니다. 2025년 귀하의 핵심 업무 키워드는 '${destinyKeyword}'이며, 이는 해당 시기에 가장 큰 성과를 낼 수 있는 에너지 흐름을 의미합니다.`,
+                sajuSection: `태어난 시분(時分)까지 정밀 분석한 결과, 귀하는 ${sajuContext}을 강하게 타고났습니다. 2025년 귀하의 핵심 업무 키워드는 '${destinyKeyword}'이며, 이는 단순한 우연이 아닌 필연적 흐름을 의미합니다.`,
                 taskSection: `따라서, ${careerContext} [${selectedTeamName}]에서 [${selectedProject}] 업무를 수행하는 것이 최적입니다. 특히 이 업무는 귀하의 '${destinyKeyword}' 기운과 맞물려 재단의 비전 달성에 크게 기여할 것입니다.`
               };
 
@@ -387,7 +396,7 @@
               
               setStep('result');
               setLoading(false);
-            }, 2500); // 분석 시간 살짝 늘림 (데이터 많아진 척)
+            }, 2500); 
           };
 
           return (
@@ -408,15 +417,15 @@
                         <div className="flex justify-center mb-4">
                           <Bot className="w-24 h-24 text-blue-600 animate-pulse" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900">사주와 AI가 만난<br/>초정밀 직무 진단</h2>
-                        <p className="text-sm font-medium text-gray-500">생년월일시와 성향 데이터를 분석하여<br/>숨겨진 직무 잠재력을 찾아드립니다.</p>
+                        <h2 className="text-2xl font-bold text-gray-900">분(分) 단위 정밀 분석<br/>직무 적합도 진단</h2>
+                        <p className="text-sm font-medium text-gray-500">태어난 시간(시/분)에 따라 운명이 달라집니다.<br/>AI가 당신의 숨겨진 직무 DNA를 분석합니다.</p>
                       </div>
 
                       <div className="space-y-4">
                         {/* 성별 선택 */}
                         <div>
                            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                            <User className="w-4 h-4" /> 성별 <span className="text-xs font-normal text-gray-400">(사주 대운 분석용)</span>
+                            <User className="w-4 h-4" /> 성별 <span className="text-xs font-normal text-gray-400">(대운 흐름 분석)</span>
                            </label>
                            <div className="grid grid-cols-2 gap-3">
                               <button 
@@ -434,37 +443,57 @@
                            </div>
                         </div>
 
-                        {/* 생년월일 & 시간 */}
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="col-span-2">
-                            <label className="block text-sm font-semibold text-gray-700 mb-1">생년월일</label>
-                            <input
-                              type="text"
-                              name="birthDate"
-                              value={formData.birthDate}
-                              onChange={handleInputChange}
-                              placeholder="900101"
-                              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition text-center tracking-widest"
-                              maxLength={6}
-                            />
-                          </div>
+                        {/* 생년월일 & 시간(시/분) */}
+                        <div className="grid grid-cols-1 gap-3">
                           <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-1">태어난 시간</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">생년월일</label>
                             <div className="relative">
-                                <Clock className="absolute left-2 top-3.5 w-4 h-4 text-gray-400" />
+                                <Calendar className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
                                 <input
-                                type="text"
-                                name="birthTime"
-                                value={formData.birthTime}
+                                type="number"
+                                name="birthDate"
+                                value={formData.birthDate}
                                 onChange={handleInputChange}
-                                placeholder="14"
-                                className="w-full pl-7 pr-2 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition text-center"
-                                maxLength={2}
+                                placeholder="생년월일 6자리 (예: 900101)"
+                                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                maxLength={6}
                                 />
                             </div>
                           </div>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">태어난 시(Hour)</label>
+                                <div className="relative">
+                                    <Clock className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                                    <input
+                                    type="number"
+                                    name="birthHour"
+                                    value={formData.birthHour}
+                                    onChange={handleInputChange}
+                                    placeholder="0-23"
+                                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition text-center"
+                                    min="0" max="23"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">태어난 분(Minute)</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-3.5 text-gray-400 font-bold">:</span>
+                                    <input
+                                    type="number"
+                                    name="birthMinute"
+                                    value={formData.birthMinute}
+                                    onChange={handleInputChange}
+                                    placeholder="0-59"
+                                    className="w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition text-center"
+                                    min="0" max="59"
+                                    />
+                                </div>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-xs text-right text-gray-400 -mt-2">* 시간은 24시간제 (예: 오후 2시 → 14)</p>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
@@ -510,7 +539,7 @@
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-1">재단 근속년수</label>
                           <input
-                            type="text"
+                            type="number"
                             name="workYears"
                             value={formData.workYears}
                             onChange={handleInputChange}
@@ -523,11 +552,11 @@
 
                       <button
                         onClick={calculateResult}
-                        disabled={formData.mbti.length < 4 || !formData.bloodType || formData.birthDate.length < 6 || !formData.gender || !formData.birthTime}
+                        disabled={formData.mbti.length < 4 || !formData.bloodType || formData.birthDate.length < 6 || !formData.gender || !formData.birthHour || !formData.birthMinute}
                         className="w-full py-4 bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-800 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg transform transition active:scale-95 mt-6 flex items-center justify-center gap-2"
                       >
                         <Sparkles className="w-5 h-5" />
-                        사주 데이터로 정밀 진단하기
+                        사주 정밀 데이터로 진단하기
                       </button>
                     </div>
                   )}
@@ -541,8 +570,8 @@
                       <div>
                         <h3 className="text-xl font-bold text-gray-800">사주 명리학 데이터 분석 중...</h3>
                         <p className="text-sm text-gray-500 mt-2">
-                          연(Year), 월(Month), 일(Day), 시(Time)의<br/>
-                          상호작용을 계산하여 최적의 직무를 도출합니다.
+                          연월일시분(年月日時分)의 5주(五柱)를<br/>
+                          교차 분석하여 최적의 직무를 산출합니다.
                         </p>
                       </div>
                     </div>
@@ -556,9 +585,9 @@
                         <div className="inline-block p-2 rounded-full bg-blue-50 mb-2">
                           <CheckCircle className="w-8 h-8 text-blue-600" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900">진단 분석 완료</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">정밀 분석 결과</h2>
                         <div className="text-sm text-gray-500 mt-1">
-                          직무 매칭 적합도: <span className="text-blue-600 font-bold text-lg">{resultData.rate}%</span>
+                          직무 매칭 지수: <span className="text-blue-600 font-bold text-lg">{resultData.rate}%</span>
                         </div>
                       </div>
 
@@ -642,7 +671,7 @@
                       </div>
 
                       <button
-                        onClick={() => {setStep('intro'); setFormData({mbti:'', bloodType:'', birthDate:'', birthTime:'', gender:'', currentDept:'', workYears:''});}}
+                        onClick={() => {setStep('intro'); setFormData({mbti:'', bloodType:'', birthDate:'', birthHour:'', birthMinute:'', gender:'', currentDept:'', workYears:''});}}
                         className="w-full py-3 border border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition"
                       >
                         다시 진단하기
